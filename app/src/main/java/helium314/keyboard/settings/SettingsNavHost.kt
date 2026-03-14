@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -211,8 +212,15 @@ fun SettingsNavHost(
             SubtypeScreen(initialSubtype = it.arguments?.getString("subtype")!!.toSettingsSubtype(), onClickBack = ::goBack)
         }
     }
-    if (target.value != SettingsDestination.Settings/* && target.value != navController.currentBackStackEntry?.destination?.route*/)
-        navController.navigate(route = target.value)
+    LaunchedEffect(target.value) {
+        val route = target.value
+        if (route == SettingsDestination.Settings) return@LaunchedEffect
+        if (!SettingsDestination.isKnownRoute(route)) return@LaunchedEffect
+        if (navController.currentBackStackEntry?.destination?.route == route) return@LaunchedEffect
+        navController.navigate(route) {
+            launchSingleTop = true
+        }
+    }
 }
 
 object SettingsDestination {
@@ -254,6 +262,50 @@ object SettingsDestination {
     const val Layouts = "layouts"
     const val Dictionaries = "dictionaries"
     val navTarget = MutableStateFlow(Settings)
+
+    private val staticRoutes = setOf(
+        Settings,
+        AppearanceHub,
+        LayoutTypingHub,
+        ProfilesHub,
+        GesturesHub,
+        ActionsToolbarHub,
+        MacrosClipboardHub,
+        LanguagesHub,
+        PrivacyDataHub,
+        ExperimentalHub,
+        AboutAdvancedHub,
+        About,
+        TextCorrection,
+        Preferences,
+        Toolbar,
+        GestureTyping,
+        DataGathering,
+        DataReview,
+        Advanced,
+        Debug,
+        Appearance,
+        Kamelot,
+        KamelotProfiles,
+        KamelotThemes,
+        KamelotModules,
+        KamelotExperiments,
+        KamelotGestureOs,
+        KamelotQuickActions,
+        KamelotMacros,
+        PersonalDictionaries,
+        Languages,
+        Layouts,
+        Dictionaries,
+    )
+
+    fun isKnownRoute(route: String): Boolean {
+        if (route in staticRoutes) return true
+        return route.startsWith(Colors) ||
+            route.startsWith(ColorsNight) ||
+            route.startsWith(PersonalDictionary) ||
+            route.startsWith(Subtype)
+    }
 
     private val navScope = CoroutineScope(Dispatchers.Default)
     fun navigateTo(target: String) {
