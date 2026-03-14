@@ -192,7 +192,11 @@ fun <T: Any?> SearchScreen(
             }
             CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyLarge) {
                 if (searchText.text.isBlank() && content != null) {
-                    Column {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f, fill = true)
+                            .verticalScroll(rememberScrollState())
+                    ) {
                         content()
                     }
                 } else {
