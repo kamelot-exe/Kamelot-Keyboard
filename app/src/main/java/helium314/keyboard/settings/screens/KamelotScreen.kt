@@ -30,6 +30,12 @@ import helium314.keyboard.kamelot.KamelotConfig
 import helium314.keyboard.kamelot.KamelotDefaults
 import helium314.keyboard.kamelot.KamelotFeatureFlags
 import helium314.keyboard.kamelot.KamelotProfileManager
+import helium314.keyboard.kamelot.KamelotAccentPalette
+import helium314.keyboard.kamelot.KamelotBorderStyle
+import helium314.keyboard.kamelot.KamelotCornerStyle
+import helium314.keyboard.kamelot.KamelotGlowIntensity
+import helium314.keyboard.kamelot.KamelotKeyBackgroundStyle
+import helium314.keyboard.kamelot.KamelotSpacingDensity
 import helium314.keyboard.kamelot.ThemePresetMapper
 import helium314.keyboard.kamelot.actions.KamelotActionContext
 import helium314.keyboard.kamelot.actions.KamelotActionDispatcher
@@ -51,6 +57,9 @@ import helium314.keyboard.settings.initPreview
 import helium314.keyboard.settings.preferences.ListPreference
 import helium314.keyboard.settings.preferences.Preference
 import helium314.keyboard.settings.preferences.SwitchPreference
+
+private fun enumLabel(value: String) = value.lowercase().replace('_', ' ').split(' ')
+    .joinToString(" ") { part -> part.replaceFirstChar { char -> char.uppercase() } }
 
 private data class KamelotModuleCard(
     val title: String,
@@ -394,6 +403,90 @@ fun createKamelotSettings(context: Context) = listOf(
         ListPreference(setting, items, manager.getActiveProfile().themePreset) {
             manager.updateActiveProfileThemePreset(it)
             KeyboardSwitcher.getInstance().setThemeNeedsReload()
+        }
+    },
+    Setting(
+        context,
+        "kamelot_appearance_accent_palette",
+        R.string.kamelot_appearance_accent_palette_title,
+        R.string.kamelot_appearance_accent_palette_summary
+    ) { setting ->
+        val manager = KamelotProfileManager(LocalContext.current)
+        val items = KamelotAccentPalette.entries.map { enumLabel(it.name) to it.name }
+        ListPreference(setting, items, manager.getActiveProfile().appearanceConfig.accentPalette.name) {
+            manager.updateActiveAppearanceConfig { config ->
+                config.copy(accentPalette = KamelotAccentPalette.valueOf(it))
+            }
+        }
+    },
+    Setting(
+        context,
+        "kamelot_appearance_key_background_style",
+        R.string.kamelot_appearance_key_background_title,
+        R.string.kamelot_appearance_key_background_summary
+    ) { setting ->
+        val manager = KamelotProfileManager(LocalContext.current)
+        val items = KamelotKeyBackgroundStyle.entries.map { enumLabel(it.name) to it.name }
+        ListPreference(setting, items, manager.getActiveProfile().appearanceConfig.keyBackgroundStyle.name) {
+            manager.updateActiveAppearanceConfig { config ->
+                config.copy(keyBackgroundStyle = KamelotKeyBackgroundStyle.valueOf(it))
+            }
+        }
+    },
+    Setting(
+        context,
+        "kamelot_appearance_border_style",
+        R.string.kamelot_appearance_border_style_title,
+        R.string.kamelot_appearance_border_style_summary
+    ) { setting ->
+        val manager = KamelotProfileManager(LocalContext.current)
+        val items = KamelotBorderStyle.entries.map { enumLabel(it.name) to it.name }
+        ListPreference(setting, items, manager.getActiveProfile().appearanceConfig.borderStyle.name) {
+            manager.updateActiveAppearanceConfig { config ->
+                config.copy(borderStyle = KamelotBorderStyle.valueOf(it))
+            }
+        }
+    },
+    Setting(
+        context,
+        "kamelot_appearance_corner_style",
+        R.string.kamelot_appearance_corner_style_title,
+        R.string.kamelot_appearance_corner_style_summary
+    ) { setting ->
+        val manager = KamelotProfileManager(LocalContext.current)
+        val items = KamelotCornerStyle.entries.map { enumLabel(it.name) to it.name }
+        ListPreference(setting, items, manager.getActiveProfile().appearanceConfig.cornerStyle.name) {
+            manager.updateActiveAppearanceConfig { config ->
+                config.copy(cornerStyle = KamelotCornerStyle.valueOf(it))
+            }
+        }
+    },
+    Setting(
+        context,
+        "kamelot_appearance_glow_intensity",
+        R.string.kamelot_appearance_glow_intensity_title,
+        R.string.kamelot_appearance_glow_intensity_summary
+    ) { setting ->
+        val manager = KamelotProfileManager(LocalContext.current)
+        val items = KamelotGlowIntensity.entries.map { enumLabel(it.name) to it.name }
+        ListPreference(setting, items, manager.getActiveProfile().appearanceConfig.glowIntensity.name) {
+            manager.updateActiveAppearanceConfig { config ->
+                config.copy(glowIntensity = KamelotGlowIntensity.valueOf(it))
+            }
+        }
+    },
+    Setting(
+        context,
+        "kamelot_appearance_spacing_density",
+        R.string.kamelot_appearance_spacing_density_title,
+        R.string.kamelot_appearance_spacing_density_summary
+    ) { setting ->
+        val manager = KamelotProfileManager(LocalContext.current)
+        val items = KamelotSpacingDensity.entries.map { enumLabel(it.name) to it.name }
+        ListPreference(setting, items, manager.getActiveProfile().appearanceConfig.spacingDensity.name) {
+            manager.updateActiveAppearanceConfig { config ->
+                config.copy(spacingDensity = KamelotSpacingDensity.valueOf(it))
+            }
         }
     },
     Setting(

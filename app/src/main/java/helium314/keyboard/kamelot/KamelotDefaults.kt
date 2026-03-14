@@ -28,6 +28,7 @@ object KamelotDefaults {
                 KamelotMacro(id = "chat_smile", label = "Smile", textPayload = ":)"),
                 KamelotMacro(id = "chat_omw", label = "On my way", textPayload = "On my way."),
             ),
+            appearanceConfig = appearanceConfigForPreset(ThemePresetMapper.getPreset("glass_neon")),
             quickActionsConfig = QuickActionsConfig(
                 stripMode = KamelotStripMode.PROFILE_DRIVEN,
                 stripPreset = KamelotStripPreset.COMMUNICATION,
@@ -94,6 +95,7 @@ object KamelotDefaults {
                 KamelotMacro(id = "work_signature", label = "Signature", textPayload = "Best regards,"),
                 KamelotMacro(id = "work_email", label = "Email", textPayload = "Thanks, I will follow up by email."),
             ),
+            appearanceConfig = appearanceConfigForPreset(ThemePresetMapper.getPreset(DEFAULT_THEME_PRESET_ID)),
             quickActionsConfig = QuickActionsConfig(
                 stripMode = KamelotStripMode.PROFILE_DRIVEN,
                 stripPreset = KamelotStripPreset.PRODUCTIVITY,
@@ -150,13 +152,14 @@ object KamelotDefaults {
         KamelotProfile(
             id = "minimal",
             name = "Minimal",
-            themePreset = "minimal",
+            themePreset = "minimal_dark",
             layoutMode = FutureLayoutMode.STANDARD,
             gestureConfig = KamelotGestureConfig(gestureTypingEnabled = true, advancedGesturesEnabled = false),
             toolbarActions = emptyList(),
             macros = listOf(
                 KamelotMacro(id = "minimal_signature", label = "Signature", textPayload = "Sent from Kamelot Keyboard")
             ),
+            appearanceConfig = appearanceConfigForPreset(ThemePresetMapper.getPreset("minimal_dark")),
             quickActionsConfig = QuickActionsConfig(
                 stripMode = KamelotStripMode.MINIMAL,
                 stripPreset = KamelotStripPreset.COMPACT,
@@ -189,6 +192,7 @@ object KamelotDefaults {
             toolbarActions = listOf(
                 KeyboardAction(KeyboardActionType.SWITCH_PROFILE, DEFAULT_PROFILE_ID)
             ),
+            appearanceConfig = appearanceConfigForPreset(ThemePresetMapper.getPreset("brutal_black")),
             quickActionsConfig = QuickActionsConfig(
                 stripMode = KamelotStripMode.QUICK_ACTIONS_ONLY,
                 stripPreset = KamelotStripPreset.COMPACT,

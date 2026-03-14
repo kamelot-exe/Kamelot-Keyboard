@@ -13,6 +13,7 @@ data class KamelotProfile(
     val toolbarActions: List<KeyboardAction>,
     val macros: List<KamelotMacro> = emptyList(),
     val quickActionsConfig: QuickActionsConfig = QuickActionsConfig(),
+    val appearanceConfig: KamelotAppearanceConfig = KamelotAppearanceConfig(),
     val contextHints: List<KamelotContextCategory> = listOf(KamelotContextCategory.GENERAL),
     val routingIntent: KamelotProfileRoutingIntent = KamelotProfileRoutingIntent(),
     val gestureActionConfig: GestureActionConfig = GestureActionConfig(),

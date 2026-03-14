@@ -95,7 +95,10 @@ class KamelotProfileManager @JvmOverloads constructor(
     fun updateActiveProfileThemePreset(themePresetId: String): KamelotProfile {
         val current = getActiveProfile()
         val updatedProfiles = loadProfiles().map { profile ->
-            if (profile.id == current.id) profile.copy(themePreset = ThemePresetMapper.getPreset(themePresetId).id)
+            if (profile.id == current.id) profile.copy(
+                themePreset = ThemePresetMapper.getPreset(themePresetId).id,
+                appearanceConfig = appearanceConfigForPreset(ThemePresetMapper.getPreset(themePresetId)),
+            )
             else profile
         }
         saveProfiles(updatedProfiles)
@@ -108,6 +111,11 @@ class KamelotProfileManager @JvmOverloads constructor(
     fun updateActiveProfileLayoutMode(layoutMode: FutureLayoutMode): KamelotProfile =
         updateActiveProfile { profile ->
             profile.copy(layoutMode = layoutMode)
+        }
+
+    fun updateActiveAppearanceConfig(transform: (KamelotAppearanceConfig) -> KamelotAppearanceConfig): KamelotProfile =
+        updateActiveProfile { profile ->
+            profile.copy(appearanceConfig = transform(profile.appearanceConfig))
         }
 
     fun upsertMacro(profileId: String = getActiveProfile().id, macro: KamelotMacro): KamelotProfile =
@@ -144,6 +152,10 @@ class KamelotProfileManager @JvmOverloads constructor(
         }
 
     private fun normalizeProfile(profile: KamelotProfile): KamelotProfile = profile.copy(
+        themePreset = ThemePresetMapper.getPreset(profile.themePreset).id,
+        appearanceConfig = if (profile.appearanceConfig == KamelotAppearanceConfig()) {
+            appearanceConfigForPreset(ThemePresetMapper.getPreset(profile.themePreset))
+        } else profile.appearanceConfig,
         quickActionsConfig = normalizeQuickActionsConfig(profile.quickActionsConfig)
     )
 

@@ -21,6 +21,9 @@ object ThemePresetMapper {
             keyShape = ThemeKeyShape.SYSTEM,
             dayThemeName = KeyboardTheme.THEME_LIGHT,
             nightThemeName = KeyboardTheme.THEME_DARK,
+            borderStyle = ThemeBorderStyle.SOFT,
+            glowIntensity = ThemeGlowIntensity.OFF,
+            description = "Balanced default with clean contrast and familiar proportions.",
         ),
         ThemePreset(
             id = "brutal_black",
@@ -31,6 +34,9 @@ object ThemePresetMapper {
             keyShape = ThemeKeyShape.SHARP,
             dayThemeName = KeyboardTheme.THEME_BLACK,
             nightThemeName = KeyboardTheme.THEME_BLACK,
+            borderStyle = ThemeBorderStyle.SHARP,
+            glowIntensity = ThemeGlowIntensity.OFF,
+            description = "Hard-edged, high-density dark theme with deep blacks and minimal distraction.",
         ),
         ThemePreset(
             id = "glass_neon",
@@ -42,23 +48,44 @@ object ThemePresetMapper {
             dayThemeName = KeyboardTheme.THEME_OCEAN,
             nightThemeName = KeyboardTheme.THEME_VIOLETTE,
             useKeyBorders = true,
+            borderStyle = ThemeBorderStyle.SOFT,
+            glowIntensity = ThemeGlowIntensity.VIVID,
+            description = "Rounded glassy surface with brighter accents and a richer night presence.",
         ),
         ThemePreset(
-            id = "minimal",
-            displayName = "Minimal",
+            id = "minimal_dark",
+            displayName = "Minimal Dark",
             baseThemeId = KeyboardTheme.STYLE_MATERIAL,
             accentColor = "#263238",
             backgroundStyle = ThemeBackgroundStyle.SOLID,
             keyShape = ThemeKeyShape.SYSTEM,
             dayThemeName = KeyboardTheme.THEME_CLOUDY,
             nightThemeName = KeyboardTheme.THEME_DARKER,
+            borderStyle = ThemeBorderStyle.SOFT,
+            glowIntensity = ThemeGlowIntensity.OFF,
+            description = "Quiet low-glare preset tuned for focused long-form typing.",
+        ),
+        ThemePreset(
+            id = "high_contrast",
+            displayName = "High Contrast",
+            baseThemeId = KeyboardTheme.STYLE_MATERIAL,
+            accentColor = "#ffffff",
+            backgroundStyle = ThemeBackgroundStyle.CONTRAST,
+            keyShape = ThemeKeyShape.SHARP,
+            dayThemeName = KeyboardTheme.THEME_BLACK,
+            nightThemeName = KeyboardTheme.THEME_BLACK,
+            useKeyBorders = true,
+            borderStyle = ThemeBorderStyle.HIGH_CONTRAST,
+            glowIntensity = ThemeGlowIntensity.SUBTLE,
+            description = "Sharper separation between rows and keys for readability and accessibility.",
         ),
     )
 
     private val presetMap = presets.associateBy { it.id }
 
     fun getPreset(id: String?): ThemePreset =
-        presetMap[id] ?: presetMap.getValue(KamelotDefaults.DEFAULT_THEME_PRESET_ID)
+        presetMap[if (id == "minimal") "minimal_dark" else id]
+            ?: presetMap.getValue(KamelotDefaults.DEFAULT_THEME_PRESET_ID)
 
     fun getActivePreset(prefs: SharedPreferences): ThemePreset =
         getPreset(prefs.getString(PREF_ACTIVE_THEME_PRESET_ID, KamelotDefaults.DEFAULT_THEME_PRESET_ID))

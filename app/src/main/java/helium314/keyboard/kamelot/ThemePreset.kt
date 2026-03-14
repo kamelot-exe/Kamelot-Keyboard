@@ -14,6 +14,9 @@ data class ThemePreset(
     val dayThemeName: String,
     val nightThemeName: String,
     val useKeyBorders: Boolean = false,
+    val borderStyle: ThemeBorderStyle = ThemeBorderStyle.SOFT,
+    val glowIntensity: ThemeGlowIntensity = ThemeGlowIntensity.SUBTLE,
+    val description: String = "",
 )
 
 @Serializable
@@ -28,4 +31,18 @@ enum class ThemeKeyShape {
     SYSTEM,
     ROUNDED,
     SHARP,
+}
+
+@Serializable
+enum class ThemeBorderStyle {
+    SOFT,
+    SHARP,
+    HIGH_CONTRAST,
+}
+
+@Serializable
+enum class ThemeGlowIntensity {
+    OFF,
+    SUBTLE,
+    VIVID,
 }
