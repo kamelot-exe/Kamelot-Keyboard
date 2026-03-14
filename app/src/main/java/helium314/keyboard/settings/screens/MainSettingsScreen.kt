@@ -158,14 +158,15 @@ fun MainSettingsScreen(
                 title = stringResource(R.string.settings_hub_title),
                 subtitle = stringResource(R.string.settings_hub_summary),
             )
-            cards.forEach { card ->
-                SettingsHubCardView(card)
+            cards.forEachIndexed { index, card ->
+                SettingsHubCardView(card, settingsAccent(index))
             }
             if (JniUtils.sHaveGestureLib) {
                 SettingsMiniCard(
                     title = stringResource(R.string.settings_screen_gesture),
                     summary = stringResource(R.string.settings_hub_gesture_summary),
                     onClick = onClickGestures,
+                    accent = settingsAccent(3),
                 )
             }
             SettingsSearchHint()
@@ -182,22 +183,26 @@ private fun SettingsHeroCard(title: String, subtitle: String) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .background(MaterialTheme.colorScheme.primaryContainer)
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(text = title, style = MaterialTheme.typography.headlineSmall)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.88f),
             )
         }
     }
 }
 
 @Composable
-private fun SettingsHubCardView(card: SettingsHubCard) {
+private fun SettingsHubCardView(card: SettingsHubCard, accent: SettingsAccent) {
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -205,17 +210,23 @@ private fun SettingsHubCardView(card: SettingsHubCard) {
         shape = RoundedCornerShape(24.dp),
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier
+                .background(accent.subtleContainer)
+                .padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(text = card.title, style = MaterialTheme.typography.titleLarge)
+                Text(
+                    text = card.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = accent.subtleOnContainer,
+                )
                 NextScreenIcon()
             }
             Text(
                 text = card.summary,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = accent.subtleOnContainer.copy(alpha = 0.82f),
             )
             if (card.labels.isNotEmpty()) {
                 FlowRow(
@@ -228,8 +239,8 @@ private fun SettingsHubCardView(card: SettingsHubCard) {
                             enabled = false,
                             label = { Text(label) },
                             colors = AssistChipDefaults.assistChipColors(
-                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledContainerColor = accent.container,
+                                disabledLabelColor = accent.onContainer,
                             ),
                             border = null,
                         )
@@ -246,6 +257,7 @@ private fun SettingsMiniCard(
     title: String,
     summary: String,
     onClick: () -> Unit,
+    accent: SettingsAccent = settingsAccent(0),
 ) {
     ElevatedCard(
         modifier = modifier.clickable(onClick = onClick),
@@ -254,14 +266,15 @@ private fun SettingsMiniCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(accent.subtleContainer)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium)
+            Text(text = title, style = MaterialTheme.typography.titleMedium, color = accent.subtleOnContainer)
             Text(
                 text = summary,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = accent.subtleOnContainer.copy(alpha = 0.82f),
             )
         }
     }
@@ -269,18 +282,23 @@ private fun SettingsMiniCard(
 
 @Composable
 private fun SettingsSearchHint() {
-    Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+    val accent = settingsAccent(5)
+    Surface(shape = RoundedCornerShape(22.dp), color = accent.subtleContainer) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(text = stringResource(R.string.kamelot_global_search_title), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(R.string.kamelot_global_search_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = accent.subtleOnContainer,
+            )
             Text(
                 text = stringResource(R.string.settings_hub_search_summary),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = accent.subtleOnContainer.copy(alpha = 0.82f),
             )
         }
     }

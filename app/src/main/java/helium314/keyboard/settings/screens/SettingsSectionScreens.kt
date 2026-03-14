@@ -44,7 +44,9 @@ private fun SettingsSectionScreen(
     subtitle: String,
     links: List<SectionLink>,
     inlineSettings: List<Any?>,
+    accentIndex: Int,
 ) {
+    val accent = settingsAccent(accentIndex)
     SearchSettingsScreen(
         onClickBack = onClickBack,
         title = title,
@@ -61,19 +63,20 @@ private fun SettingsSectionScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .background(accent.container)
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(text = title, style = MaterialTheme.typography.headlineSmall)
+                    Text(text = title, style = MaterialTheme.typography.headlineSmall, color = accent.onContainer)
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = accent.onContainer.copy(alpha = 0.86f),
                     )
                 }
             }
-            links.forEach { link ->
+            links.forEachIndexed { index, link ->
+                val linkAccent = settingsAccent(accentIndex + index + 1)
                 ElevatedCard(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -81,20 +84,22 @@ private fun SettingsSectionScreen(
                     shape = RoundedCornerShape(24.dp),
                 ) {
                     Column(
-                        modifier = Modifier.padding(18.dp),
+                        modifier = Modifier
+                            .background(linkAccent.subtleContainer)
+                            .padding(18.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            Text(text = link.title, style = MaterialTheme.typography.titleLarge)
+                            Text(text = link.title, style = MaterialTheme.typography.titleLarge, color = linkAccent.subtleOnContainer)
                             NextScreenIcon()
                         }
                         Text(
                             text = link.summary,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = linkAccent.subtleOnContainer.copy(alpha = 0.82f),
                         )
                     }
                 }
@@ -144,6 +149,7 @@ fun AppearanceHubScreen(onClickBack: () -> Unit) {
             helium314.keyboard.latin.settings.Settings.PREF_SIDE_PADDING_SCALE_PREFIX,
             "kamelot_theme_presets_foundation",
         ),
+        accentIndex = 0,
     )
 }
 
@@ -181,6 +187,7 @@ fun LayoutTypingHubScreen(onClickBack: () -> Unit) {
             helium314.keyboard.latin.settings.Settings.PREF_VIBRATE_ON,
             helium314.keyboard.latin.settings.Settings.PREF_SOUND_ON,
         ),
+        accentIndex = 1,
     )
 }
 
@@ -209,6 +216,7 @@ fun ProfilesHubScreen(onClickBack: () -> Unit) {
             ThemePresetMapper.PREF_ACTIVE_THEME_PRESET_ID,
             KamelotFeatureFlags.PREF_SHOW_FUTURE_PROFILES_SECTION,
         ),
+        accentIndex = 2,
     )
 }
 
@@ -236,6 +244,7 @@ fun GesturesHubScreen(onClickBack: () -> Unit) {
             KamelotFeatureFlags.PREF_ENABLE_ADVANCED_GESTURE_EXPERIMENTS,
             KamelotFeatureFlags.PREF_ENABLE_PREDICTIVE_HEX_SWIPE_PATH,
         ),
+        accentIndex = 3,
     )
 }
 
@@ -263,6 +272,7 @@ fun ActionsToolbarHubScreen(onClickBack: () -> Unit) {
             KamelotFeatureFlags.PREF_ENABLE_CUSTOM_ACTIONS,
             "kamelot_action_engine_diagnostics",
         ),
+        accentIndex = 4,
     )
 }
 
@@ -290,6 +300,7 @@ fun MacrosClipboardHubScreen(onClickBack: () -> Unit) {
             helium314.keyboard.latin.settings.Settings.PREF_CLIPBOARD_HISTORY_RETENTION_TIME,
             helium314.keyboard.latin.settings.Settings.PREF_CLIPBOARD_HISTORY_PINNED_FIRST,
         ),
+        accentIndex = 5,
     )
 }
 
@@ -321,6 +332,7 @@ fun LanguagesHubScreen(onClickBack: () -> Unit) {
             helium314.keyboard.latin.settings.Settings.PREF_SHOW_LANGUAGE_SWITCH_KEY,
             helium314.keyboard.latin.settings.Settings.PREF_LANGUAGE_SWITCH_KEY,
         ),
+        accentIndex = 6,
     )
 }
 
@@ -348,6 +360,7 @@ fun PrivacyDataHubScreen(onClickBack: () -> Unit) {
             "kamelot_reset_adaptive_hex_hits",
             helium314.keyboard.latin.settings.Settings.PREF_ALWAYS_INCOGNITO_MODE,
         ),
+        accentIndex = 7,
     )
 }
 
@@ -375,6 +388,7 @@ fun ExperimentalHubScreen(onClickBack: () -> Unit) {
             KamelotFeatureFlags.PREF_ENABLE_ADAPTIVE_HEX_HIT_ZONES,
             KamelotFeatureFlags.PREF_ENABLE_PREDICTIVE_HEX_SWIPE_PATH,
         ),
+        accentIndex = 8,
     )
 }
 
@@ -397,6 +411,7 @@ fun AboutAdvancedHubScreen(onClickBack: () -> Unit) {
             ),
         ),
         inlineSettings = emptyList(),
+        accentIndex = 9,
     )
 }
 

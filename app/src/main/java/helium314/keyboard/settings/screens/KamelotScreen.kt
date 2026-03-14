@@ -166,6 +166,7 @@ fun KamelotScreen(onClickBack: () -> Unit) {
 
 @Composable
 private fun KamelotHeroCard(title: String, subtitle: String) {
+    val accent = settingsAccent(2)
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
@@ -173,15 +174,15 @@ private fun KamelotHeroCard(title: String, subtitle: String) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .background(accent.container)
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(text = title, style = MaterialTheme.typography.headlineSmall)
+            Text(text = title, style = MaterialTheme.typography.headlineSmall, color = accent.onContainer)
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = accent.onContainer.copy(alpha = 0.86f),
             )
         }
     }
@@ -217,6 +218,7 @@ private fun KamelotUtilityCard(
     summary: String,
     onClick: () -> Unit,
 ) {
+    val accent = settingsAccent(4)
     ElevatedCard(
         modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
@@ -224,14 +226,15 @@ private fun KamelotUtilityCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(accent.subtleContainer)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium)
+            Text(text = title, style = MaterialTheme.typography.titleMedium, color = accent.subtleOnContainer)
             Text(
                 text = summary,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = accent.subtleOnContainer.copy(alpha = 0.82f),
             )
         }
     }
@@ -239,6 +242,7 @@ private fun KamelotUtilityCard(
 
 @Composable
 private fun KamelotModuleCardView(card: KamelotModuleCard) {
+    val accent = settingsAccent(card.title.hashCode())
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -248,6 +252,7 @@ private fun KamelotModuleCardView(card: KamelotModuleCard) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(accent.subtleContainer)
                 .padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -256,13 +261,13 @@ private fun KamelotModuleCardView(card: KamelotModuleCard) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = card.title, style = MaterialTheme.typography.titleLarge)
+                Text(text = card.title, style = MaterialTheme.typography.titleLarge, color = accent.subtleOnContainer)
                 NextScreenIcon()
             }
             Text(
                 text = card.summary,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = accent.subtleOnContainer.copy(alpha = 0.82f),
             )
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -294,21 +299,22 @@ private fun KamelotBadge(text: String, emphasized: Boolean) {
 
 @Composable
 private fun KamelotInfoCard(title: String, summary: String) {
+    val accent = settingsAccent(5)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                color = accent.subtleContainer,
                 shape = RoundedCornerShape(24.dp),
             )
             .padding(18.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium)
+            Text(text = title, style = MaterialTheme.typography.titleMedium, color = accent.subtleOnContainer)
             Text(
                 text = summary,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = accent.subtleOnContainer.copy(alpha = 0.82f),
             )
         }
     }
