@@ -6,6 +6,12 @@
 
 package helium314.keyboard.keyboard;
 
+import androidx.annotation.Nullable;
+
+import helium314.keyboard.kamelot.layout.AdaptiveHexTouchMapper;
+import helium314.keyboard.kamelot.layout.HexTouchMapper;
+import helium314.keyboard.kamelot.layout.HexSwipePathResolver;
+
 /**
  * This class handles key detection.
  */
@@ -16,6 +22,10 @@ public class KeyDetector {
     private Keyboard mKeyboard;
     private int mCorrectionX;
     private int mCorrectionY;
+    @Nullable
+    private HexTouchMapper mHexTouchMapper;
+    @Nullable
+    private HexSwipePathResolver mHexSwipePathResolver;
 
     public KeyDetector() {
         this(0.0f /* keyHysteresisDistance */, 0.0f /* keyHysteresisDistanceForSlidingModifier */);
@@ -44,6 +54,47 @@ public class KeyDetector {
         mCorrectionX = (int)correctionX;
         mCorrectionY = (int)correctionY;
         mKeyboard = keyboard;
+    }
+
+    public void setHexTouchMapper(@Nullable final HexTouchMapper hexTouchMapper) {
+        mHexTouchMapper = hexTouchMapper;
+    }
+
+    public void setHexSwipePathResolver(@Nullable final HexSwipePathResolver hexSwipePathResolver) {
+        mHexSwipePathResolver = hexSwipePathResolver;
+    }
+
+    public void resetHexSwipePathResolver() {
+        final HexSwipePathResolver hexSwipePathResolver = mHexSwipePathResolver;
+        if (hexSwipePathResolver != null) {
+            hexSwipePathResolver.reset();
+        }
+    }
+
+    public boolean resolveGesturePoint(final int x, final int y, final int[] outCoords) {
+        final HexSwipePathResolver hexSwipePathResolver = mHexSwipePathResolver;
+        if (hexSwipePathResolver == null) {
+            return false;
+        }
+        final int touchX = getTouchX(x);
+        final int touchY = getTouchY(y);
+        final HexSwipePathResolver.ResolvedPoint resolvedPoint =
+                hexSwipePathResolver.resolve(touchX, touchY);
+        outCoords[0] = resolvedPoint.getX() - mCorrectionX;
+        outCoords[1] = resolvedPoint.getY() - mCorrectionY;
+        return resolvedPoint.getX() != touchX || resolvedPoint.getY() != touchY;
+    }
+
+    public void recordAdaptiveHit(@Nullable final Key key, final int x, final int y) {
+        if (key == null) {
+            return;
+        }
+        final HexTouchMapper hexTouchMapper = mHexTouchMapper;
+        if (hexTouchMapper instanceof AdaptiveHexTouchMapper) {
+            final AdaptiveHexTouchMapper adaptiveHexTouchMapper =
+                    (AdaptiveHexTouchMapper) hexTouchMapper;
+            adaptiveHexTouchMapper.recordSuccessfulTouch(key, getTouchX(x), getTouchY(y));
+        }
     }
 
     public int getKeyHysteresisDistanceSquared(final boolean isSlidingFromModifier) {
@@ -81,6 +132,13 @@ public class KeyDetector {
         }
         final int touchX = getTouchX(x);
         final int touchY = getTouchY(y);
+        final HexTouchMapper hexTouchMapper = mHexTouchMapper;
+        if (hexTouchMapper != null) {
+            final Key hexKey = hexTouchMapper.detectHitKey(touchX, touchY);
+            if (hexKey != null) {
+                return hexKey;
+            }
+        }
 
         int minDistance = Integer.MAX_VALUE;
         Key primaryKey = null;

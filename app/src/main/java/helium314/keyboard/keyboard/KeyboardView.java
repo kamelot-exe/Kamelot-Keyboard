@@ -15,6 +15,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Paint.Align;
+import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.Typeface;
@@ -31,9 +32,13 @@ import helium314.keyboard.keyboard.emoji.EmojiPageKeyboardView;
 import helium314.keyboard.keyboard.internal.KeyDrawParams;
 import helium314.keyboard.keyboard.internal.KeyVisualAttributes;
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
+import helium314.keyboard.kamelot.KamelotLayoutModeResolver;
+import helium314.keyboard.kamelot.layout.HexGridLayout;
+import helium314.keyboard.kamelot.layout.HexKeyGeometry;
 import helium314.keyboard.latin.R;
 import helium314.keyboard.latin.common.ColorType;
 import helium314.keyboard.latin.common.Colors;
+import helium314.keyboard.latin.utils.Log;
 import helium314.keyboard.latin.common.Constants;
 import helium314.keyboard.latin.common.StringUtilsKt;
 import helium314.keyboard.latin.settings.Settings;
@@ -46,6 +51,7 @@ import java.util.HashSet;
 /** A view that renders a virtual {@link Keyboard}. */
 // todo: this ThemeStyle-dependent stuff really should not be in here!
 public class KeyboardView extends View {
+    private static final String TAG = KeyboardView.class.getSimpleName();
     // XML attributes
     private final KeyVisualAttributes mKeyVisualAttributes;
     // Default keyLabelFlags from {@link KeyboardTheme}.
@@ -96,9 +102,14 @@ public class KeyboardView extends View {
     private final Canvas mOffscreenCanvas = new Canvas();
     @NonNull
     private final Paint mPaint = new Paint();
+    @NonNull
+    private final Paint mHexOutlinePaint = new Paint();
     private final Paint.FontMetrics mFontMetrics = new Paint.FontMetrics();
     protected final Typeface mTypeface;
     protected final Typeface mEmojiTypeface;
+    @Nullable
+    private HexGridLayout mHexGridLayout;
+    private boolean mHexLayoutEnabled;
 
     public KeyboardView(final Context context, final AttributeSet attrs) {
         this(context, attrs, R.attr.keyboardViewStyle);
@@ -148,6 +159,10 @@ public class KeyboardView extends View {
         keyAttr.recycle();
 
         mPaint.setAntiAlias(true);
+        mHexOutlinePaint.setAntiAlias(true);
+        mHexOutlinePaint.setStyle(Paint.Style.STROKE);
+        mHexOutlinePaint.setStrokeWidth(context.getResources().getDisplayMetrics().density);
+        mHexOutlinePaint.setColor(Color.argb(40, 255, 255, 255));
         mTypeface = Settings.getInstance().getCustomTypeface();
         mEmojiTypeface = Settings.getInstance().getCustomEmojiTypeface();
         setFitsSystemWindows(true);
@@ -188,6 +203,17 @@ public class KeyboardView extends View {
         }
 
         mKeyboard = keyboard;
+        try {
+            mHexLayoutEnabled = this instanceof MainKeyboardView
+                    && KamelotLayoutModeResolver.isHexLayoutEnabled(getContext());
+            mHexGridLayout = mHexLayoutEnabled
+                    ? HexGridLayout.fromKeyboard(keyboard, keyboard.mKamelotLayoutMetadata)
+                    : null;
+        } catch (final RuntimeException e) {
+            Log.w(TAG, "Falling back to standard keyboard rendering after hex layout error", e);
+            mHexLayoutEnabled = false;
+            mHexGridLayout = null;
+        }
         mKeyScaleForText = (float) Math.sqrt(1 / Settings.getValues().mKeyboardHeightScale);
         final int scaledKeyHeight = (int) ((keyboard.mMostCommonKeyHeight - keyboard.mVerticalGap) * mKeyScaleForText);
         mKeyDrawParams.updateParams(scaledKeyHeight, mKeyVisualAttributes);
@@ -371,6 +397,21 @@ public class KeyboardView extends View {
             bgX = -padding.left;
         }
         background.setBounds(0, 0, bgWidth, bgHeight);
+        final HexGridLayout hexGridLayout = mHexGridLayout;
+        if (mHexLayoutEnabled && hexGridLayout != null) {
+            final HexKeyGeometry geometry = hexGridLayout.getGeometry(key);
+            if (geometry != null) {
+                final Path hexPath = geometry.getPath();
+                final int saveCount = canvas.save();
+                canvas.clipPath(hexPath);
+                canvas.translate(bgX, bgY);
+                background.draw(canvas);
+                canvas.translate(-bgX, -bgY);
+                canvas.drawPath(hexPath, mHexOutlinePaint);
+                canvas.restoreToCount(saveCount);
+                return;
+            }
+        }
         canvas.translate(bgX, bgY);
         background.draw(canvas);
         canvas.translate(-bgX, -bgY);

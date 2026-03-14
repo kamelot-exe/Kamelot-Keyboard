@@ -3,8 +3,10 @@ package helium314.keyboard.kamelot.actions
 
 import helium314.keyboard.kamelot.KamelotMacro
 import helium314.keyboard.kamelot.KamelotProfile
+import helium314.keyboard.kamelot.KamelotQuickActionsResolver
 import helium314.keyboard.kamelot.KeyboardAction
 import helium314.keyboard.kamelot.KeyboardActionType
+import helium314.keyboard.latin.utils.prefs
 
 class KamelotActionDispatcher(
     private val executor: KamelotActionExecutor = KamelotActionExecutor(),
@@ -21,7 +23,14 @@ class KamelotActionDispatcher(
         else -> action
     }
 
-    fun profileActions(profile: KamelotProfile): List<KeyboardAction> = profile.toolbarActions
+    fun profileActions(profile: KamelotProfile, context: KamelotActionContext? = null): List<KeyboardAction> {
+        val prefs = context?.context?.prefs()
+        val profiles = context?.profileManager?.loadProfiles().orEmpty().ifEmpty { listOf(profile) }
+        val stripActions = prefs?.let { sharedPrefs ->
+            KamelotQuickActionsResolver.resolve(profile, sharedPrefs, profiles).map { it.action }
+        }.orEmpty()
+        return if (stripActions.isNotEmpty()) stripActions else profile.toolbarActions
+    }
 
     fun diagnostics(profile: KamelotProfile, macros: Map<String, KamelotMacro> = emptyMap()): String =
         profileActions(profile).joinToString(", ") { action ->

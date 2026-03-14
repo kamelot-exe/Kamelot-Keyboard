@@ -16,6 +16,7 @@ import androidx.annotation.Nullable;
 
 import helium314.keyboard.keyboard.Key;
 import helium314.keyboard.keyboard.KeyboardId;
+import helium314.keyboard.kamelot.layout.KamelotLayoutMetadata;
 import helium314.keyboard.keyboard.internal.keyboard_parser.LocaleKeyboardInfos;
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
 import helium314.keyboard.latin.R;
@@ -104,6 +105,8 @@ public class KeyboardParams {
 
     @NonNull
     public final TouchPositionCorrection mTouchPositionCorrection = new TouchPositionCorrection();
+    @NonNull
+    public KamelotLayoutMetadata mKamelotLayoutMetadata = KamelotLayoutMetadata.Companion.standard();
 
     // Comparator to sort {@link Key}s from top-left to bottom-right order.
     private static final Comparator<Key> ROW_COLUMN_COMPARATOR = (lhs, rhs) -> {

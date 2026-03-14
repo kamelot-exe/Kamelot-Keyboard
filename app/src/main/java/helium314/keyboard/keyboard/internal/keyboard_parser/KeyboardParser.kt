@@ -3,6 +3,7 @@ package helium314.keyboard.keyboard.internal.keyboard_parser
 
 import android.content.Context
 import android.content.res.Configuration
+import helium314.keyboard.kamelot.layout.KamelotLayoutMetadata
 import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.keyboard.Key
 import helium314.keyboard.keyboard.Key.KeyParams
@@ -59,7 +60,13 @@ class KeyboardParser(private val params: KeyboardParams, private val context: Co
             KeyboardId.ELEMENT_CLIPBOARD_BOTTOM_ROW -> LayoutType.CLIPBOARD_BOTTOM
             else -> LayoutType.MAIN
         }
-        val baseKeys = LayoutParser.parseLayout(layoutType, params, context)
+        val baseLayout = LayoutParser.parseLayoutSpec(layoutType, params, context)
+        params.mKamelotLayoutMetadata = if (params.mId.isAlphaOrSymbolKeyboard) {
+            baseLayout.metadata
+        } else {
+            KamelotLayoutMetadata()
+        }
+        val baseKeys = baseLayout.rows
         val keysInRows = createRows(baseKeys)
         val heightRescale: Float
         if (params.mId.isEmojiClipBottomRow) {

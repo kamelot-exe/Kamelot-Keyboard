@@ -15,6 +15,7 @@ data class KamelotActionContext(
     val profileManager: KamelotProfileManager? = null,
     val macros: Map<String, KamelotMacro> = emptyMap(),
     val openClipboard: (() -> Boolean)? = null,
+    val onProfileSwitched: ((String) -> Unit)? = null,
     val dryRun: Boolean = false,
 ) {
     fun selectedText(): CharSequence? = selectedTextProvider?.invoke()

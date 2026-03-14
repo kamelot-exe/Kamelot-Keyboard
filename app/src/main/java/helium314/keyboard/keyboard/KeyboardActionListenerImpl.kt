@@ -12,6 +12,13 @@ import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.event.HardwareEventDecoder
 import helium314.keyboard.event.HardwareKeyboardEventDecoder
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
+import helium314.keyboard.kamelot.GestureTriggerType
+import helium314.keyboard.kamelot.KamelotFeatureFlags
+import helium314.keyboard.kamelot.KamelotGestureOsResolver
+import helium314.keyboard.kamelot.KamelotProfileManager
+import helium314.keyboard.kamelot.actions.KamelotActionContext
+import helium314.keyboard.kamelot.actions.KamelotActionDispatcher
+import helium314.keyboard.kamelot.actions.KamelotActionResult
 import helium314.keyboard.latin.AudioAndHapticFeedbackManager
 import helium314.keyboard.latin.EmojiAltPhysicalKeyDetector
 import helium314.keyboard.latin.LatinIME
@@ -26,6 +33,7 @@ import helium314.keyboard.latin.define.ProductionFlags
 import helium314.keyboard.latin.inputlogic.InputLogic
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.SubtypeSettings
+import helium314.keyboard.latin.utils.prefs
 import kotlin.math.abs
 import kotlin.math.min
 
@@ -41,6 +49,8 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     private val keyboardSwitcher = KeyboardSwitcher.getInstance()
     private val settings = Settings.getInstance()
     private val audioAndHapticFeedbackManager = AudioAndHapticFeedbackManager.getInstance()
+    private val kamelotProfileManager by lazy { KamelotProfileManager(latinIME) }
+    private val kamelotActionDispatcher by lazy { KamelotActionDispatcher() }
 
     // language slide state
     private var initialSubtype: InputMethodSubtype? = null
@@ -145,14 +155,20 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         return false
     }
 
-    override fun onHorizontalSpaceSwipe(steps: Int): Boolean = when (Settings.getValues().mSpaceSwipeHorizontal) {
+    override fun onHorizontalSpaceSwipe(steps: Int): Boolean {
+        if (steps < 0 && handleKamelotGestureBinding(GestureTriggerType.SPACE_SWIPE_LEFT)) return true
+        if (steps > 0 && handleKamelotGestureBinding(GestureTriggerType.SPACE_SWIPE_RIGHT)) return true
+        return when (Settings.getValues().mSpaceSwipeHorizontal) {
         KeyboardActionListener.SWIPE_MOVE_CURSOR -> onMoveCursorHorizontally(steps)
         KeyboardActionListener.SWIPE_SWITCH_LANGUAGE -> onLanguageSlide(steps)
         KeyboardActionListener.SWIPE_TOGGLE_NUMPAD -> toggleNumpad(false, false)
         else -> false
+        }
     }
 
-    override fun onVerticalSpaceSwipe(steps: Int): Boolean = when (Settings.getValues().mSpaceSwipeVertical) {
+    override fun onVerticalSpaceSwipe(steps: Int): Boolean {
+        if (steps < 0 && handleKamelotGestureBinding(GestureTriggerType.SPACE_SWIPE_UP)) return true
+        return when (Settings.getValues().mSpaceSwipeVertical) {
         KeyboardActionListener.SWIPE_MOVE_CURSOR -> onMoveCursorVertically(steps)
         KeyboardActionListener.SWIPE_SWITCH_LANGUAGE -> onLanguageSlide(steps)
         KeyboardActionListener.SWIPE_TOGGLE_NUMPAD -> toggleNumpad(false, false)
@@ -161,6 +177,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             true
         }
         else -> false
+        }
     }
 
     override fun onEndSpaceSwipe(){
@@ -360,6 +377,42 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
 
     private fun performHapticFeedback(hapticEvent: HapticEvent) {
         audioAndHapticFeedbackManager.performHapticFeedback(keyboardSwitcher.visibleKeyboardView, hapticEvent)
+    }
+
+    private fun handleKamelotGestureBinding(triggerType: GestureTriggerType): Boolean {
+        val prefs = latinIME.prefs()
+        if (!KamelotFeatureFlags.isFutureCapabilityEnabled(prefs, KamelotFeatureFlags.PREF_ENABLE_ADVANCED_GESTURES)) {
+            return false
+        }
+        val profile = kamelotProfileManager.getActiveProfile()
+        val binding = KamelotGestureOsResolver.findBinding(profile, prefs, triggerType) ?: return false
+        val result = kamelotActionDispatcher.dispatch(
+            binding.action,
+            KamelotActionContext(
+                context = latinIME,
+                inputConnection = latinIME.currentInputConnection,
+                editorInfo = latinIME.currentInputEditorInfo,
+                selectedTextProvider = { latinIME.currentInputConnection?.getSelectedText(0) },
+                profileManager = kamelotProfileManager,
+                macros = kamelotProfileManager.getMacroMap(profile),
+                openClipboard = {
+                    keyboardSwitcher.onToggleKeyboard(KeyboardSwitcher.KeyboardSwitchState.CLIPBOARD)
+                    true
+                },
+                onProfileSwitched = {
+                    keyboardSwitcher.setThemeNeedsReload()
+                },
+            )
+        )
+        return when (result) {
+            is KamelotActionResult.Success -> {
+                performHapticFeedback(HapticEvent.GESTURE_MOVE)
+                true
+            }
+            is KamelotActionResult.Ignored,
+            is KamelotActionResult.Unsupported,
+            is KamelotActionResult.FailedSafely -> false
+        }
     }
 
     private fun getHardwareKeyEventDecoder(deviceId: Int): HardwareEventDecoder {

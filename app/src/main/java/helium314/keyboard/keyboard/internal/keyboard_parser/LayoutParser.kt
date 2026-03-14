@@ -2,6 +2,8 @@
 package helium314.keyboard.keyboard.internal.keyboard_parser
 
 import android.content.Context
+import helium314.keyboard.kamelot.FutureLayoutMode
+import helium314.keyboard.kamelot.layout.KamelotLayoutMetadata
 import helium314.keyboard.keyboard.internal.KeyboardParams
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.AbstractKeyData
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.AutoTextKeyData
@@ -25,23 +27,44 @@ import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.prefs
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.floatOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 
 object LayoutParser {
     private const val TAG = "LayoutParser"
-    private val layoutCache = hashMapOf<String, (KeyboardParams) -> MutableList<MutableList<KeyData>>>()
+    private val layoutCache = hashMapOf<String, ParsedLayoutTemplate>()
+
+    data class ParsedLayoutResult(
+        val rows: MutableList<MutableList<KeyData>>,
+        val metadata: KamelotLayoutMetadata = KamelotLayoutMetadata(),
+    )
+
+    private data class ParsedLayoutTemplate(
+        val metadata: KamelotLayoutMetadata,
+        val rowsFactory: (KeyboardParams) -> MutableList<MutableList<KeyData>>,
+    )
 
     fun clearCache() = layoutCache.clear()
 
     fun parseLayout(layoutType: LayoutType, params: KeyboardParams, context: Context): MutableList<MutableList<KeyData>> {
+        return parseLayoutSpec(layoutType, params, context).rows
+    }
+
+    fun parseLayoutSpec(layoutType: LayoutType, params: KeyboardParams, context: Context): ParsedLayoutResult {
         if (layoutType == LayoutType.FUNCTIONAL && !params.mId.isAlphaOrSymbolKeyboard)
-            return mutableListOf(mutableListOf()) // no functional keys
+            return ParsedLayoutResult(mutableListOf(mutableListOf())) // no functional keys
         val layoutName = if (layoutType == LayoutType.MAIN) params.mId.mSubtype.mainLayoutName
             else params.mId.mSubtype.layouts[layoutType] ?: Settings.readDefaultLayoutName(layoutType, context.prefs())
-        return layoutCache.getOrPut(layoutType.name + layoutName) {
+        val template = layoutCache.getOrPut(layoutType.name + layoutName) {
             createCacheLambda(layoutType, layoutName, context)
-        }(params)
+        }
+        return ParsedLayoutResult(template.rowsFactory(params), template.metadata)
     }
 
     /**
@@ -72,13 +95,16 @@ object LayoutParser {
     }
 
     private fun createCacheLambda(layoutType: LayoutType, layoutName: String, context: Context):
-                (KeyboardParams) -> MutableList<MutableList<KeyData>> {
+                ParsedLayoutTemplate {
         val layoutFileContent = getLayoutFileContent(layoutType, layoutName.substringBefore("+"), context).trimStart()
-        if (layoutFileContent.startsWith("[") || (LayoutUtilsCustom.isCustomLayout(layoutName) && layoutFileContent.startsWith("//"))) {
+        if (layoutFileContent.startsWith("[")
+            || layoutFileContent.startsWith("{")
+            || (LayoutUtilsCustom.isCustomLayout(layoutName) && layoutFileContent.startsWith("//"))
+        ) {
             try {
-                val florisKeyData = parseJsonString(layoutFileContent, false)
-                return { params ->
-                    florisKeyData.mapTo(mutableListOf()) { row ->
+                val parsedLayout = parseJsonLayoutDefinition(layoutFileContent)
+                return ParsedLayoutTemplate(parsedLayout.metadata) { params ->
+                    parsedLayout.rows.mapTo(mutableListOf()) { row ->
                         row.mapNotNullTo(mutableListOf()) { it.compute(params) }
                     }
                 }
@@ -88,13 +114,45 @@ object LayoutParser {
         }
         // not a json, or invalid json
         val simpleKeyData = parseSimpleString(layoutFileContent)
-        return { params ->
+        return ParsedLayoutTemplate(KamelotLayoutMetadata()) { params ->
             simpleKeyData.mapIndexedTo(mutableListOf()) { i, row ->
                 val newRow = row.toMutableList()
                 if (params.mId.isAlphabetKeyboard && layoutName.endsWith("+"))
                     params.mLocaleKeyboardInfos.getExtraKeys(i+1)?.let { newRow.addAll(it) }
                 newRow
             }
+        }
+    }
+
+    private data class ParsedJsonLayout(
+        val rows: List<List<AbstractKeyData>>,
+        val metadata: KamelotLayoutMetadata,
+    )
+
+    private fun parseJsonLayoutDefinition(layoutText: String): ParsedJsonLayout {
+        val strippedText = layoutText.stripCommentLines()
+        val element = florisJsonConfig.parseToJsonElement(strippedText)
+        return when (element) {
+            is JsonArray -> ParsedJsonLayout(
+                rows = parseJsonString(strippedText, false),
+                metadata = KamelotLayoutMetadata(),
+            )
+            is JsonObject -> {
+                val rowsElement = element["rows"] ?: element["layout"]
+                    ?: throw IllegalArgumentException("json layout object must contain rows or layout")
+                ParsedJsonLayout(
+                    rows = florisJsonConfig.decodeFromJsonElement<List<List<AbstractKeyData>>>(rowsElement),
+                    metadata = KamelotLayoutMetadata(
+                        layoutMode = element["layoutMode"]?.jsonPrimitive?.contentOrNull
+                            ?.let { runCatching { FutureLayoutMode.valueOf(it.uppercase()) }.getOrNull() }
+                            ?: FutureLayoutMode.STANDARD,
+                        hexRadius = element["hexRadius"]?.jsonPrimitive?.floatOrNull,
+                        hexSpacing = element["hexSpacing"]?.jsonPrimitive?.floatOrNull,
+                        rowOffset = element["rowOffset"]?.jsonPrimitive?.floatOrNull,
+                    ),
+                )
+            }
+            else -> throw IllegalArgumentException("unsupported json layout root")
         }
     }
 

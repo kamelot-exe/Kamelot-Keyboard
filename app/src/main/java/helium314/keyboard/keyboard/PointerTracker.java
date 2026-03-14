@@ -172,6 +172,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
 
     private final BatchInputArbiter mBatchInputArbiter;
     private final GestureStrokeDrawingPoints mGestureStrokeDrawingPoints;
+    private final int[] mResolvedGestureCoords = new int[2];
 
     // TODO: Add PointerTrackerFactory singleton and move some class static methods into it.
     public static void init(final TypedArray mainKeyboardViewAttr, final TimerProxy timerProxy,
@@ -638,6 +639,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     private void onDownEvent(final int x, final int y, final long eventTime,
             final KeyDetector keyDetector) {
         setKeyDetectorInner(keyDetector);
+        mKeyDetector.resetHexSwipePathResolver();
         if (DEBUG_EVENT) {
             printTouchEvent("onDownEvent:", x, y, eventTime);
         }
@@ -763,15 +765,21 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         if (!mIsDetectingGesture || sInKeySwipe) {
             return;
         }
+        int resolvedX = x;
+        int resolvedY = y;
+        if (mKeyDetector.resolveGesturePoint(x, y, mResolvedGestureCoords)) {
+            resolvedX = mResolvedGestureCoords[0];
+            resolvedY = mResolvedGestureCoords[1];
+        }
         final boolean onValidArea = mBatchInputArbiter.addMoveEventPoint(
-                x, y, eventTime, isMajorEvent, this);
+                resolvedX, resolvedY, eventTime, isMajorEvent, this);
         // If the move event goes out from valid batch input area, cancel batch input.
         if (!onValidArea) {
             cancelBatchInput();
             return;
         }
         mGestureStrokeDrawingPoints.onMoveEvent(
-                x, y, mBatchInputArbiter.getElapsedTimeSinceFirstDown(eventTime));
+                resolvedX, resolvedY, mBatchInputArbiter.getElapsedTimeSinceFirstDown(eventTime));
         // If the PopupKeysPanel is showing then do not attempt to enter gesture mode. However,
         // the gestured touch points are still being recorded in case the panel is dismissed.
         if (isShowingPopupKeysPanel()) {
@@ -1104,6 +1112,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 && (currentKey.getCode() == currentRepeatingKeyCode) && !isInDraggingFinger) {
             return;
         }
+        mKeyDetector.recordAdaptiveHit(currentKey, mKeyX, mKeyY);
         detectAndSendKey(currentKey, mKeyX, mKeyY, eventTime);
         if (isInSlidingKeyInput) {
             callListenerOnFinishSlidingInput();

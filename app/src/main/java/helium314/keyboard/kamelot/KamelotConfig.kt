@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 object KamelotConfig {
     const val PRODUCT_NAME = "Kamelot Keyboard"
     const val PRODUCT_TAGLINE = "A private, customizable Android keyboard that adapts to the user."
-    const val FOUNDATION_PHASE = "Phase 2"
+    const val FOUNDATION_PHASE = "Phase 7"
     val supportedLayoutModes = FutureLayoutMode.entries
 }
 
@@ -15,3 +15,9 @@ enum class FutureLayoutMode {
     STANDARD,
     HEX_EXPERIMENTAL,
 }
+
+val FutureLayoutMode.displayName: String
+    get() = when (this) {
+        FutureLayoutMode.STANDARD -> "Standard Layout"
+        FutureLayoutMode.HEX_EXPERIMENTAL -> "Hex Layout (Experimental)"
+    }

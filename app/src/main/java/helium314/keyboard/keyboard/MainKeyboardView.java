@@ -44,6 +44,14 @@ import helium314.keyboard.keyboard.internal.NonDistinctMultitouchHelper;
 import helium314.keyboard.keyboard.internal.SlidingKeyInputDrawingPreview;
 import helium314.keyboard.keyboard.internal.TimerHandler;
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
+import helium314.keyboard.kamelot.KamelotFeatureFlags;
+import helium314.keyboard.kamelot.KamelotLayoutModeResolver;
+import helium314.keyboard.kamelot.layout.AdaptiveHexTouchMapper;
+import helium314.keyboard.kamelot.layout.AdaptiveHitModel;
+import helium314.keyboard.kamelot.layout.HexGridLayout;
+import helium314.keyboard.kamelot.layout.HexTouchMapper;
+import helium314.keyboard.kamelot.layout.HexSwipePathResolver;
+import helium314.keyboard.kamelot.layout.HexSwipePointSnapper;
 import helium314.keyboard.latin.R;
 import helium314.keyboard.latin.RichInputMethodSubtype;
 import helium314.keyboard.latin.SuggestedWords;
@@ -308,6 +316,31 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         super.setKeyboard(keyboard);
         mKeyDetector.setKeyboard(
                 keyboard, -getPaddingLeft(), -getPaddingTop() + getVerticalCorrection());
+        try {
+            if (KamelotLayoutModeResolver.isHexLayoutEnabled(getContext())) {
+                final HexGridLayout hexGridLayout =
+                        HexGridLayout.fromKeyboard(keyboard, keyboard.mKamelotLayoutMetadata);
+                final SharedPreferences prefs = KtxKt.prefs(getContext());
+                final boolean adaptiveHitEnabled = KamelotFeatureFlags.isFutureCapabilityEnabled(
+                        prefs, KamelotFeatureFlags.PREF_ENABLE_ADAPTIVE_HEX_HIT_ZONES);
+                final boolean predictiveSwipeEnabled = KamelotFeatureFlags.isFutureCapabilityEnabled(
+                        prefs, KamelotFeatureFlags.PREF_ENABLE_PREDICTIVE_HEX_SWIPE_PATH);
+                final HexTouchMapper hexTouchMapper = adaptiveHitEnabled
+                        ? new AdaptiveHexTouchMapper(hexGridLayout, new AdaptiveHitModel(getContext(), prefs))
+                        : new HexTouchMapper(hexGridLayout);
+                mKeyDetector.setHexTouchMapper(hexTouchMapper);
+                mKeyDetector.setHexSwipePathResolver(predictiveSwipeEnabled
+                        ? new HexSwipePathResolver(new HexSwipePointSnapper(hexGridLayout))
+                        : null);
+            } else {
+                mKeyDetector.setHexTouchMapper(null);
+                mKeyDetector.setHexSwipePathResolver(null);
+            }
+        } catch (final RuntimeException e) {
+            Log.w(TAG, "Falling back to standard touch mapping after hex runtime error", e);
+            mKeyDetector.setHexTouchMapper(null);
+            mKeyDetector.setHexSwipePathResolver(null);
+        }
         PointerTracker.setKeyDetector(mKeyDetector);
         mPopupKeysKeyboardCache.clear();
 

@@ -61,6 +61,7 @@ class KamelotActionExecutor {
             ?: return KamelotActionResult.Ignored("No profile manager available.")
         return runCatching {
             val profile = manager.switchProfile(id)
+            context.onProfileSwitched?.invoke(profile.id)
             KamelotActionResult.Success("Switched profile to ${profile.name}.")
         }.getOrElse {
             KamelotActionResult.FailedSafely("Failed to switch profile safely.")

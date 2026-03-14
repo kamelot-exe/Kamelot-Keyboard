@@ -12,6 +12,10 @@ data class KamelotProfile(
     val gestureConfig: KamelotGestureConfig,
     val toolbarActions: List<KeyboardAction>,
     val macros: List<KamelotMacro> = emptyList(),
+    val quickActionsConfig: QuickActionsConfig = QuickActionsConfig(),
+    val contextHints: List<KamelotContextCategory> = listOf(KamelotContextCategory.GENERAL),
+    val routingIntent: KamelotProfileRoutingIntent = KamelotProfileRoutingIntent(),
+    val gestureActionConfig: GestureActionConfig = GestureActionConfig(),
 )
 
 @Serializable

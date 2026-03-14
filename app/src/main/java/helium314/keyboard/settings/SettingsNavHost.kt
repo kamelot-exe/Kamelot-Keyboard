@@ -23,12 +23,29 @@ import helium314.keyboard.settings.screens.ColorsScreen
 import helium314.keyboard.settings.screens.DebugScreen
 import helium314.keyboard.settings.screens.DictionaryScreen
 import helium314.keyboard.settings.screens.GestureTypingScreen
+import helium314.keyboard.settings.screens.KamelotGestureOsScreen
+import helium314.keyboard.settings.screens.KamelotExperimentsScreen
+import helium314.keyboard.settings.screens.KamelotModulesScreen
 import helium314.keyboard.settings.screens.KamelotScreen
+import helium314.keyboard.settings.screens.KamelotMacrosScreen
+import helium314.keyboard.settings.screens.KamelotProfilesScreen
+import helium314.keyboard.settings.screens.KamelotQuickActionsScreen
+import helium314.keyboard.settings.screens.KamelotThemesScreen
 import helium314.keyboard.settings.screens.LanguageScreen
 import helium314.keyboard.settings.screens.MainSettingsScreen
+import helium314.keyboard.settings.screens.ExperimentalHubScreen
+import helium314.keyboard.settings.screens.GesturesHubScreen
+import helium314.keyboard.settings.screens.LanguagesHubScreen
+import helium314.keyboard.settings.screens.LayoutTypingHubScreen
+import helium314.keyboard.settings.screens.ActionsToolbarHubScreen
+import helium314.keyboard.settings.screens.AppearanceHubScreen
+import helium314.keyboard.settings.screens.MacrosClipboardHubScreen
+import helium314.keyboard.settings.screens.AboutAdvancedHubScreen
+import helium314.keyboard.settings.screens.PrivacyDataHubScreen
 import helium314.keyboard.settings.screens.PersonalDictionariesScreen
 import helium314.keyboard.settings.screens.PersonalDictionaryScreen
 import helium314.keyboard.settings.screens.PreferencesScreen
+import helium314.keyboard.settings.screens.ProfilesHubScreen
 import helium314.keyboard.settings.screens.SecondaryLayoutScreen
 import helium314.keyboard.settings.screens.SubtypeScreen
 import helium314.keyboard.settings.screens.TextCorrectionScreen
@@ -67,20 +84,48 @@ fun SettingsNavHost(
     ) {
         composable(SettingsDestination.Settings) {
             MainSettingsScreen(
-                onClickAbout = { navController.navigate(SettingsDestination.About) },
-                onClickTextCorrection = { navController.navigate(SettingsDestination.TextCorrection) },
-                onClickPreferences = { navController.navigate(SettingsDestination.Preferences) },
-                onClickToolbar = { navController.navigate(SettingsDestination.Toolbar) },
-                onClickGestureTyping = { navController.navigate(SettingsDestination.GestureTyping) },
-                onClickDataGathering = { navController.navigate(SettingsDestination.DataGathering) },
-                onClickAdvanced = { navController.navigate(SettingsDestination.Advanced) },
-                onClickAppearance = { navController.navigate(SettingsDestination.Appearance) },
-                onClickLanguage = { navController.navigate(SettingsDestination.Languages) },
-                onClickKamelot = { navController.navigate(SettingsDestination.Kamelot) },
-                onClickLayouts = { navController.navigate(SettingsDestination.Layouts) },
-                onClickDictionaries = { navController.navigate(SettingsDestination.Dictionaries) },
+                onClickAppearance = { navController.navigate(SettingsDestination.AppearanceHub) },
+                onClickLayoutTyping = { navController.navigate(SettingsDestination.LayoutTypingHub) },
+                onClickProfiles = { navController.navigate(SettingsDestination.ProfilesHub) },
+                onClickGestures = { navController.navigate(SettingsDestination.GesturesHub) },
+                onClickActionsToolbar = { navController.navigate(SettingsDestination.ActionsToolbarHub) },
+                onClickMacrosClipboard = { navController.navigate(SettingsDestination.MacrosClipboardHub) },
+                onClickLanguages = { navController.navigate(SettingsDestination.LanguagesHub) },
+                onClickPrivacyData = { navController.navigate(SettingsDestination.PrivacyDataHub) },
+                onClickExperimental = { navController.navigate(SettingsDestination.ExperimentalHub) },
+                onClickAboutAdvanced = { navController.navigate(SettingsDestination.AboutAdvancedHub) },
                 onClickBack = ::goBack,
             )
+        }
+        composable(SettingsDestination.AppearanceHub) {
+            AppearanceHubScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.LayoutTypingHub) {
+            LayoutTypingHubScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.ProfilesHub) {
+            ProfilesHubScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.GesturesHub) {
+            GesturesHubScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.ActionsToolbarHub) {
+            ActionsToolbarHubScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.MacrosClipboardHub) {
+            MacrosClipboardHubScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.LanguagesHub) {
+            LanguagesHubScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.PrivacyDataHub) {
+            PrivacyDataHubScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.ExperimentalHub) {
+            ExperimentalHubScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.AboutAdvancedHub) {
+            AboutAdvancedHubScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.About) {
             AboutScreen(onClickBack = ::goBack)
@@ -115,6 +160,27 @@ fun SettingsNavHost(
         }
         composable(SettingsDestination.Kamelot) {
             KamelotScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.KamelotProfiles) {
+            KamelotProfilesScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.KamelotThemes) {
+            KamelotThemesScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.KamelotModules) {
+            KamelotModulesScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.KamelotExperiments) {
+            KamelotExperimentsScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.KamelotGestureOs) {
+            KamelotGestureOsScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.KamelotQuickActions) {
+            KamelotQuickActionsScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.KamelotMacros) {
+            KamelotMacrosScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.PersonalDictionary + "{locale}") {
             val locale = it.arguments?.getString("locale")?.takeIf { loc -> loc.isNotBlank() }?.constructLocale()
@@ -151,6 +217,16 @@ fun SettingsNavHost(
 
 object SettingsDestination {
     const val Settings = "settings"
+    const val AppearanceHub = "appearance_hub"
+    const val LayoutTypingHub = "layout_typing_hub"
+    const val ProfilesHub = "profiles_hub"
+    const val GesturesHub = "gestures_hub"
+    const val ActionsToolbarHub = "actions_toolbar_hub"
+    const val MacrosClipboardHub = "macros_clipboard_hub"
+    const val LanguagesHub = "languages_hub"
+    const val PrivacyDataHub = "privacy_data_hub"
+    const val ExperimentalHub = "experimental_hub"
+    const val AboutAdvancedHub = "about_advanced_hub"
     const val About = "about"
     const val TextCorrection = "text_correction"
     const val Preferences = "preferences"
@@ -162,6 +238,13 @@ object SettingsDestination {
     const val Debug = "debug"
     const val Appearance = "appearance"
     const val Kamelot = "kamelot"
+    const val KamelotProfiles = "kamelot_profiles"
+    const val KamelotThemes = "kamelot_themes"
+    const val KamelotModules = "kamelot_modules"
+    const val KamelotExperiments = "kamelot_experiments"
+    const val KamelotGestureOs = "kamelot_gesture_os"
+    const val KamelotQuickActions = "kamelot_quick_actions"
+    const val KamelotMacros = "kamelot_macros"
     const val Colors = "colors/"
     const val ColorsNight = "colors_night/"
     const val PersonalDictionaries = "personal_dictionaries"

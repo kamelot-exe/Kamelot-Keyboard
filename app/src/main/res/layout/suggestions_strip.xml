@@ -28,6 +28,19 @@
             style="?attr/suggestionWordStyle"
             android:contentDescription="@string/more_keys_strip_description" />
         <HorizontalScrollView
+            android:id="@+id/kamelot_quick_actions_container"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:scrollbars="none">
+            <LinearLayout
+                android:id="@+id/kamelot_quick_actions"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                style="?attr/suggestionWordStyle" />
+        </HorizontalScrollView>
+        <HorizontalScrollView
             android:id="@+id/toolbar_container"
             android:layout_width="match_parent"
             android:layout_height="match_parent"

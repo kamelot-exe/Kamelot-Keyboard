@@ -54,6 +54,14 @@ import helium314.keyboard.keyboard.KeyboardId;
 import helium314.keyboard.keyboard.KeyboardLayoutSet;
 import helium314.keyboard.keyboard.KeyboardSwitcher;
 import helium314.keyboard.keyboard.MainKeyboardView;
+import helium314.keyboard.kamelot.KamelotFeatureFlags;
+import helium314.keyboard.kamelot.KamelotProfile;
+import helium314.keyboard.kamelot.KamelotProfileManager;
+import helium314.keyboard.kamelot.KamelotQuickActionsResolver;
+import helium314.keyboard.kamelot.KeyboardAction;
+import helium314.keyboard.kamelot.actions.KamelotActionContext;
+import helium314.keyboard.kamelot.actions.KamelotActionDispatcher;
+import helium314.keyboard.kamelot.actions.KamelotActionResult;
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo;
 import helium314.keyboard.latin.common.ColorType;
 import helium314.keyboard.latin.common.Constants;
@@ -759,6 +767,53 @@ public class LatinIME extends InputMethodService implements
         if (hasSuggestionStripView()) {
             mSuggestionStripView.setRtl(mRichImm.getCurrentSubtype().isRtlSubtype());
             mSuggestionStripView.setListener(this, view);
+            try {
+                final KamelotProfileManager profileManager = new KamelotProfileManager(this);
+                final KamelotProfile activeProfile = profileManager.getActiveProfile();
+                final java.util.List<KamelotProfile> profiles = profileManager.loadProfiles();
+                final boolean quickActionsEnabled =
+                        KamelotFeatureFlags.isModuleEnabled(KtxKt.prefs(this), KamelotFeatureFlags.PREF_MODULE_QUICK_PANEL)
+                                && KamelotFeatureFlags.isFutureCapabilityEnabled(
+                                KtxKt.prefs(this), KamelotFeatureFlags.PREF_ENABLE_MACRO_STRIP);
+                mSuggestionStripView.setKamelotQuickActions(
+                        quickActionsEnabled ? KamelotQuickActionsResolver.INSTANCE.resolve(activeProfile, KtxKt.prefs(this), profiles)
+                                : java.util.Collections.emptyList(),
+                        activeProfile.getQuickActionsConfig().getStripBehavior(),
+                        quickActionsEnabled ? new SuggestionStripView.KamelotActionHost() {
+                            @Override
+                            public KamelotActionResult dispatch(KeyboardAction action) {
+                                final KamelotActionDispatcher dispatcher = new KamelotActionDispatcher();
+                                return dispatcher.dispatch(action, new KamelotActionContext(
+                                        LatinIME.this,
+                                        getCurrentInputConnection(),
+                                        getCurrentInputEditorInfo(),
+                                        () -> {
+                                            if (getCurrentInputConnection() == null) return null;
+                                            return getCurrentInputConnection().getSelectedText(0);
+                                        },
+                                        profileManager,
+                                        profileManager.getMacroMap(profileManager.getActiveProfile()),
+                                        () -> {
+                                            mKeyboardSwitcher.onToggleKeyboard(KeyboardSwitcher.KeyboardSwitchState.CLIPBOARD);
+                                            return true;
+                                        },
+                                        profileId -> {
+                                            mKeyboardSwitcher.setThemeNeedsReload();
+                                            return kotlin.Unit.INSTANCE;
+                                        },
+                                        false
+                                ));
+                            }
+                        } : null
+                );
+            } catch (final RuntimeException e) {
+                Log.w(TAG, "Disabling Kamelot quick actions due to runtime error", e);
+                mSuggestionStripView.setKamelotQuickActions(
+                        java.util.Collections.emptyList(),
+                        helium314.keyboard.kamelot.KamelotStripBehavior.ONLY_WHEN_IDLE,
+                        null
+                );
+            }
         }
     }
 

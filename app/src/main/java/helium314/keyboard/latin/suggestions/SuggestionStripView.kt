@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.text.TextUtils
@@ -30,6 +31,11 @@ import android.widget.TextView
 import androidx.core.view.isVisible
 import helium314.keyboard.compat.isDeviceLocked
 import helium314.keyboard.event.HapticEvent
+import helium314.keyboard.kamelot.KamelotStripItem
+import helium314.keyboard.kamelot.KamelotStripBehavior
+import helium314.keyboard.kamelot.KamelotStripItemRole
+import helium314.keyboard.kamelot.KeyboardAction
+import helium314.keyboard.kamelot.actions.KamelotActionResult
 import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.keyboard.internal.KeyboardIconsSet
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
@@ -77,6 +83,10 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         fun removeExternalSuggestions()
     }
 
+    fun interface KamelotActionHost {
+        fun dispatch(action: KeyboardAction): KamelotActionResult
+    }
+
     private val moreSuggestionsContainer: View
     private val wordViews = ArrayList<TextView>()
     private val debugInfoViews = ArrayList<TextView>()
@@ -112,6 +122,8 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
 
     // toolbar views, drawables and setup
     private val toolbar: ViewGroup = findViewById(R.id.toolbar)
+    private val kamelotQuickActionsContainer: View = findViewById(R.id.kamelot_quick_actions_container)
+    private val kamelotQuickActions: ViewGroup = findViewById(R.id.kamelot_quick_actions)
     private val toolbarContainer: View = findViewById(R.id.toolbar_container)
     private val pinnedKeys: ViewGroup = findViewById(R.id.pinned_keys)
     private val suggestionsStrip: ViewGroup = findViewById(R.id.suggestions_strip)
@@ -126,6 +138,26 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_edge_key_width),
         LinearLayout.LayoutParams.MATCH_PARENT
     )
+
+    private lateinit var listener: Listener
+    private var kamelotActionHost: KamelotActionHost? = null
+    private var kamelotStripItems: List<KamelotStripItem> = emptyList()
+    private var kamelotStripBehavior: KamelotStripBehavior = KamelotStripBehavior.ONLY_WHEN_IDLE
+    private var suggestedWords = SuggestedWords.getEmptyInstance()
+    private var startIndexOfMoreSuggestions = 0
+    private var isExternalSuggestionVisible = false // Required to disable the more suggestions if other suggestions are visible
+    private val layoutHelper = SuggestionStripLayoutHelper(context, attrs, defStyle, wordViews, dividerViews, debugInfoViews)
+    private val moreSuggestionsView = moreSuggestionsContainer.findViewById<MoreSuggestionsView>(R.id.more_suggestions_view).apply {
+        val slidingListener = object : SimpleOnGestureListener() {
+            override fun onScroll(down: MotionEvent?, me: MotionEvent, deltaX: Float, deltaY: Float): Boolean {
+                if (down == null) return false
+                val dy = me.y - down.y
+                return if (toolbarContainer.visibility != VISIBLE && deltaY > 0 && dy < (-10).dpToPx(resources)) showMoreSuggestions()
+                else false
+            }
+        }
+        gestureDetector = GestureDetector(context, slidingListener)
+    }
 
     init {
         val colors = Settings.getValues().mColors
@@ -175,23 +207,6 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         updateKeys()
     }
 
-    private lateinit var listener: Listener
-    private var suggestedWords = SuggestedWords.getEmptyInstance()
-    private var startIndexOfMoreSuggestions = 0
-    private var isExternalSuggestionVisible = false // Required to disable the more suggestions if other suggestions are visible
-    private val layoutHelper = SuggestionStripLayoutHelper(context, attrs, defStyle, wordViews, dividerViews, debugInfoViews)
-    private val moreSuggestionsView = moreSuggestionsContainer.findViewById<MoreSuggestionsView>(R.id.more_suggestions_view).apply {
-        val slidingListener = object : SimpleOnGestureListener() {
-            override fun onScroll(down: MotionEvent?, me: MotionEvent, deltaX: Float, deltaY: Float): Boolean {
-                if (down == null) return false
-                val dy = me.y - down.y
-                return if (toolbarContainer.visibility != VISIBLE && deltaY > 0 && dy < (-10).dpToPx(resources)) showMoreSuggestions()
-                else false
-            }
-        }
-        gestureDetector = GestureDetector(context, slidingListener)
-    }
-
     // public stuff
 
     val isShowingMoreSuggestionPanel get() = moreSuggestionsView.isShowingInParent
@@ -214,6 +229,45 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         }
         layoutDirection = newLayoutDirection
         suggestionsStrip.layoutDirection = newLayoutDirection
+        kamelotQuickActions.layoutDirection = newLayoutDirection
+    }
+
+    fun setKamelotQuickActions(
+        items: List<KamelotStripItem>,
+        stripBehavior: KamelotStripBehavior,
+        actionHost: KamelotActionHost?,
+    ) {
+        kamelotStripItems = items
+        kamelotStripBehavior = stripBehavior
+        kamelotActionHost = actionHost
+        kamelotQuickActions.removeAllViews()
+        val colors = Settings.getValues().mColors
+        items.forEach { item ->
+            val button = TextView(context, null, R.attr.suggestionWordStyle).apply {
+                tag = item.action
+                text = item.label
+                contentDescription = item.label
+                maxLines = 1
+                setPadding(12.dpToPx(resources), 0, 12.dpToPx(resources), 0)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT
+                )
+                setOnClickListener(this@SuggestionStripView)
+                colors.setBackground(this, ColorType.STRIP_BACKGROUND)
+                setTextColor(
+                    when (item.role) {
+                        KamelotStripItemRole.PROFILE_BADGE,
+                        KamelotStripItemRole.PROFILE_SWITCH -> colors.get(ColorType.TOOL_BAR_KEY)
+                        else -> colors.get(ColorType.KEY_TEXT)
+                    }
+                )
+                typeface = if (item.emphasized) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                alpha = if (item.role == KamelotStripItemRole.PROFILE_SWITCH) 0.88f else 1f
+            }
+            kamelotQuickActions.addView(button)
+        }
+        updateKamelotQuickActionsVisibility(toolbarContainer.visibility == VISIBLE)
     }
 
     fun setToolbarVisibility(toolbarVisible: Boolean) {
@@ -222,6 +276,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         pinnedKeys.isVisible = !locked && !toolbarVisible
         suggestionsStrip.isVisible = locked || !toolbarVisible
         toolbarContainer.isVisible = !locked && toolbarVisible
+        updateKamelotQuickActionsVisibility(toolbarVisible)
 
         if (DEBUG_SUGGESTIONS) {
             for (view in debugInfoViews) {
@@ -240,6 +295,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             context, suggestedWords, suggestionsStrip, this
         )
         isExternalSuggestionVisible = false
+        updateKamelotQuickActionsVisibility(toolbarContainer.visibility == VISIBLE)
         updateKeys()
     }
 
@@ -265,6 +321,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         }
 
         if (Settings.getValues().mAutoHideToolbar) setToolbarVisibility(false)
+        updateKamelotQuickActionsVisibility(toolbarContainer.visibility == VISIBLE)
     }
 
     fun setMoreSuggestionsHeight(remainingHeight: Int) {
@@ -322,6 +379,15 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     override fun onClick(view: View) {
         AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, this, HapticEvent.KEY_PRESS)
         val tag = view.tag
+        if (tag is KeyboardAction) {
+            when (val result = kamelotActionHost?.dispatch(tag)) {
+                is KamelotActionResult.Ignored -> KeyboardSwitcher.getInstance().showToast(result.reason, true)
+                is KamelotActionResult.Unsupported -> KeyboardSwitcher.getInstance().showToast(result.reason, true)
+                is KamelotActionResult.FailedSafely -> KeyboardSwitcher.getInstance().showToast(result.reason, true)
+                else -> {}
+            }
+            return
+        }
         if (tag is ToolbarKey) {
             val code = getCodeForToolbarKey(tag)
             if (code != KeyCode.UNSPECIFIED) {
@@ -350,6 +416,9 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         if (view.tag is ToolbarKey) {
             onLongClickToolbarKey(view)
             return true
+        }
+        if (view.tag is KeyboardAction) {
+            return false
         }
         return if (view is TextView && wordViews.contains(view)) {
             onLongClickSuggestion(view)
@@ -521,6 +590,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         toolbarExpandKey.setOnClickListener(if (hideToolbarKeys || !toolbarIsExpandable) null else this)
         pinnedKeys.visibility = if (hideToolbarKeys) GONE else suggestionsStrip.visibility
         isExternalSuggestionVisible = false
+        updateKamelotQuickActionsVisibility(toolbarContainer.visibility == VISIBLE)
     }
 
     private fun addKeyToPinnedKeys(pinnedKey: ToolbarKey) {
@@ -544,6 +614,14 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         view.setOnLongClickListener(this)
         colors.setColor(view, ColorType.TOOL_BAR_KEY)
         colors.setBackground(view, ColorType.STRIP_BACKGROUND)
+    }
+
+    private fun updateKamelotQuickActionsVisibility(toolbarVisible: Boolean) {
+        kamelotQuickActionsContainer.isVisible =
+            kamelotStripItems.isNotEmpty()
+                && !toolbarVisible
+                && !isExternalSuggestionVisible
+                && (kamelotStripBehavior == KamelotStripBehavior.ALONGSIDE_SUGGESTIONS || suggestedWords.isEmpty())
     }
 
     companion object {
