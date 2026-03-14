@@ -84,6 +84,35 @@ class KamelotProfileManager @JvmOverloads constructor(
     fun updateActiveProfile(transform: (KamelotProfile) -> KamelotProfile): KamelotProfile =
         updateProfile(getActiveProfile().id, transform)
 
+    fun createProfile(name: String, baseProfileId: String = getActiveProfile().id): KamelotProfile {
+        val base = loadProfiles().firstOrNull { it.id == baseProfileId } ?: getActiveProfile()
+        val profile = normalizeProfile(
+            base.copy(
+                id = nextProfileId(name),
+                name = nextProfileName(name),
+            )
+        )
+        saveProfiles(loadProfiles() + profile)
+        switchProfile(profile.id)
+        return profile
+    }
+
+    fun renameProfile(profileId: String, name: String): KamelotProfile =
+        updateProfile(profileId) { profile -> profile.copy(name = name.trim().ifBlank { profile.name }) }
+
+    fun deleteProfile(profileId: String): Boolean {
+        if (profileId in defaultProfileIds()) return false
+        val currentProfiles = loadProfiles()
+        if (currentProfiles.size <= 1) return false
+        val updated = currentProfiles.filterNot { it.id == profileId }
+        if (updated.size == currentProfiles.size) return false
+        saveProfiles(updated)
+        if (prefs.getString(PREF_ACTIVE_PROFILE_ID, KamelotDefaults.DEFAULT_PROFILE_ID) == profileId) {
+            switchProfile(KamelotDefaults.DEFAULT_PROFILE_ID)
+        }
+        return true
+    }
+
     fun switchProfile(profileId: String): KamelotProfile {
         val profile = loadProfiles().firstOrNull { it.id == profileId }
             ?: KamelotDefaults.profilePresets.first { it.id == KamelotDefaults.DEFAULT_PROFILE_ID }
@@ -207,4 +236,28 @@ class KamelotProfileManager @JvmOverloads constructor(
                 else -> 0
             }
         }?.plus(1) ?: 0
+
+    fun isDefaultProfile(profileId: String): Boolean = profileId in defaultProfileIds()
+
+    private fun defaultProfileIds(): Set<String> = KamelotDefaults.profilePresets.mapTo(linkedSetOf()) { it.id }
+
+    private fun nextProfileName(baseName: String): String {
+        val existingNames = loadProfiles().map { it.name }.toSet()
+        if (baseName !in existingNames) return baseName
+        var index = 2
+        while ("$baseName $index" in existingNames) index++
+        return "$baseName $index"
+    }
+
+    private fun nextProfileId(baseName: String): String {
+        val normalized = baseName.lowercase()
+            .replace(Regex("[^a-z0-9]+"), "_")
+            .trim('_')
+            .ifBlank { "profile" }
+        val existingIds = loadProfiles().map { it.id }.toSet()
+        if (normalized !in existingIds) return normalized
+        var index = 2
+        while ("${normalized}_$index" in existingIds) index++
+        return "${normalized}_$index"
+    }
 }

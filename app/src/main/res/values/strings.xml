@@ -847,6 +847,14 @@ New dictionary:
     <string name="kamelot_appearance_glow_intensity_summary">Stores how aggressive the preset should feel when richer renderer hooks land.</string>
     <string name="kamelot_appearance_spacing_density_title">Spacing density</string>
     <string name="kamelot_appearance_spacing_density_summary">Compact, balanced, or comfortable spacing as part of the profile appearance recipe.</string>
+    <string name="kamelot_profiles_studio_summary">Active profile: %1$s. Switch fast, duplicate safely, and shape the keyboard around different contexts.</string>
+    <string name="kamelot_profile_duplicate_title">Duplicate profile</string>
+    <string name="kamelot_profile_duplicate_summary">Create a new profile from the active one and keep its theme, layout, gestures, and quick panel setup.</string>
+    <string name="kamelot_profile_rename_title">Rename profile</string>
+    <string name="kamelot_profile_rename_summary">Give this custom profile a clearer name for switching and future context routing.</string>
+    <string name="kamelot_profile_name_title">Profile name</string>
+    <string name="kamelot_profiles_builder_quick_panel_summary">Current quick panel preset: %1$s. Open quick actions to tune visible controls and ordering.</string>
+    <string name="kamelot_profiles_builder_gesture_summary">Current gesture preset: %1$s. Open Gesture OS to align cursor and action gestures with this profile.</string>
     <string name="kamelot_macro_editor_title_add">Add macro</string>
     <string name="kamelot_macro_editor_title_edit">Edit macro</string>
     <string name="kamelot_macro_editor_summary">Macros stay offline and profile-aware. Phase 4 supports text insertion payloads only.</string>
