@@ -13,6 +13,8 @@ class HexKeyGeometry(
     val centerY: Float,
     val radius: Float,
 ) {
+    val localCenterX: Float = centerX - key.drawX.toFloat()
+    val localCenterY: Float = centerY - key.y.toFloat()
     private val absoluteVertices: FloatArray = buildVertices(centerX, centerY, radius)
     private val localVertices: FloatArray = absoluteVertices.copyOf().also { vertices ->
         val originX = key.drawX.toFloat()

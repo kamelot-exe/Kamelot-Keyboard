@@ -16,7 +16,7 @@ class HexGridLayout private constructor(
 
     companion object {
         private const val DEFAULT_HEX_SPACING = 0.94f
-        private const val DEFAULT_ROW_OFFSET = 0.0f
+        private const val DEFAULT_ROW_OFFSET = 0.5f
 
         @JvmStatic
         fun fromKeyboard(

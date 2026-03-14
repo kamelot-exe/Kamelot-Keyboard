@@ -51,7 +51,9 @@ Even where the renderer is not yet fully consuming every value, the product mode
 The hex layout path already has:
 
 - custom hex geometry
+- staggered default row offset for an actual hex lattice
 - hex key clipping
+- geometry-centered label and icon positioning
 - hex outline drawing
 - adaptive hit and predictive swipe add-ons
 

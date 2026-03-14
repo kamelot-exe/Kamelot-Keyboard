@@ -40,6 +40,14 @@ This keeps hex mode additive and leaves standard mode untouched.
 
 This preserves normal typing behavior and avoids JNI or gesture typing changes.
 
+## Current Readiness Notes
+
+- default derived hex rows now stagger automatically when metadata does not override row offset
+- label and icon placement follows hex geometry centers instead of old rectangular key centers
+- adaptive hit zones and predictive swipe preprocessing remain feature-gated add-ons
+
+This means the current experimental mode behaves like a real hex lattice rather than a rectangular layout with decorative hex clipping.
+
 ## Limitations
 
 - Preview popups still use stock placement and shape handling.

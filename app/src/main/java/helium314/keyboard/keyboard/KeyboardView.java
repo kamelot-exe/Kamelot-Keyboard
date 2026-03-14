@@ -18,6 +18,7 @@ import android.graphics.Paint.Align;
 import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.NinePatchDrawable;
@@ -33,6 +34,8 @@ import helium314.keyboard.keyboard.internal.KeyDrawParams;
 import helium314.keyboard.keyboard.internal.KeyVisualAttributes;
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
 import helium314.keyboard.kamelot.KamelotLayoutModeResolver;
+import helium314.keyboard.kamelot.KamelotVisualStyle;
+import helium314.keyboard.kamelot.KamelotVisualStyleResolver;
 import helium314.keyboard.kamelot.layout.HexGridLayout;
 import helium314.keyboard.kamelot.layout.HexKeyGeometry;
 import helium314.keyboard.latin.R;
@@ -104,12 +107,22 @@ public class KeyboardView extends View {
     private final Paint mPaint = new Paint();
     @NonNull
     private final Paint mHexOutlinePaint = new Paint();
+    @NonNull
+    private final Paint mKamelotOverlayPaint = new Paint();
+    @NonNull
+    private final Paint mKamelotStrokePaint = new Paint();
+    @NonNull
+    private final Paint mKamelotGlowPaint = new Paint();
+    @NonNull
+    private final RectF mKeyShapeRect = new RectF();
     private final Paint.FontMetrics mFontMetrics = new Paint.FontMetrics();
     protected final Typeface mTypeface;
     protected final Typeface mEmojiTypeface;
     @Nullable
     private HexGridLayout mHexGridLayout;
     private boolean mHexLayoutEnabled;
+    @Nullable
+    private KamelotVisualStyle mKamelotVisualStyle;
 
     public KeyboardView(final Context context, final AttributeSet attrs) {
         this(context, attrs, R.attr.keyboardViewStyle);
@@ -163,6 +176,12 @@ public class KeyboardView extends View {
         mHexOutlinePaint.setStyle(Paint.Style.STROKE);
         mHexOutlinePaint.setStrokeWidth(context.getResources().getDisplayMetrics().density);
         mHexOutlinePaint.setColor(Color.argb(40, 255, 255, 255));
+        mKamelotOverlayPaint.setAntiAlias(true);
+        mKamelotOverlayPaint.setStyle(Paint.Style.FILL);
+        mKamelotStrokePaint.setAntiAlias(true);
+        mKamelotStrokePaint.setStyle(Paint.Style.STROKE);
+        mKamelotGlowPaint.setAntiAlias(true);
+        mKamelotGlowPaint.setStyle(Paint.Style.STROKE);
         mTypeface = Settings.getInstance().getCustomTypeface();
         mEmojiTypeface = Settings.getInstance().getCustomEmojiTypeface();
         setFitsSystemWindows(true);
@@ -213,6 +232,12 @@ public class KeyboardView extends View {
             Log.w(TAG, "Falling back to standard keyboard rendering after hex layout error", e);
             mHexLayoutEnabled = false;
             mHexGridLayout = null;
+        }
+        try {
+            mKamelotVisualStyle = KamelotVisualStyleResolver.resolve(getContext());
+        } catch (final RuntimeException e) {
+            Log.w(TAG, "Falling back to stock key visuals after Kamelot style error", e);
+            mKamelotVisualStyle = null;
         }
         mKeyScaleForText = (float) Math.sqrt(1 / Settings.getValues().mKeyboardHeightScale);
         final int scaledKeyHeight = (int) ((keyboard.mMostCommonKeyHeight - keyboard.mVerticalGap) * mKeyScaleForText);
@@ -390,9 +415,9 @@ public class KeyboardView extends View {
             bgX = (keyWidth - bgWidth) / 2;
             bgY = (keyHeight - bgHeight) / 2;
         } else {
-            final Rect padding = mKeyBackgroundPadding;
-            bgWidth = keyWidth + padding.left + padding.right;
-            bgHeight = keyHeight + padding.top + padding.bottom;
+        final Rect padding = mKeyBackgroundPadding;
+        bgWidth = keyWidth + padding.left + padding.right;
+        bgHeight = keyHeight + padding.top + padding.bottom;
             bgY = -padding.top;
             bgX = -padding.left;
         }
@@ -407,6 +432,7 @@ public class KeyboardView extends View {
                 canvas.translate(bgX, bgY);
                 background.draw(canvas);
                 canvas.translate(-bgX, -bgY);
+                drawKamelotKeyOverlay(canvas, key, hexPath, null);
                 canvas.drawPath(hexPath, mHexOutlinePaint);
                 canvas.restoreToCount(saveCount);
                 return;
@@ -415,6 +441,50 @@ public class KeyboardView extends View {
         canvas.translate(bgX, bgY);
         background.draw(canvas);
         canvas.translate(-bgX, -bgY);
+        mKeyShapeRect.set(0, 0, keyWidth, keyHeight);
+        drawKamelotKeyOverlay(canvas, key, null, mKeyShapeRect);
+    }
+
+    private void drawKamelotKeyOverlay(@NonNull final Canvas canvas, @NonNull final Key key,
+            @Nullable final Path hexPath, @Nullable final RectF rect) {
+        final KamelotVisualStyle visualStyle = mKamelotVisualStyle;
+        if (visualStyle == null || key.isSpacer()) {
+            return;
+        }
+        final boolean pressed = key.isPressed();
+        final int fillColor = pressed ? visualStyle.getPressedFillColor() : visualStyle.getFillColor();
+        final int strokeColor = pressed ? visualStyle.getPressedStrokeColor() : visualStyle.getStrokeColor();
+        mKamelotOverlayPaint.setColor(fillColor);
+        mKamelotStrokePaint.setColor(strokeColor);
+        mKamelotStrokePaint.setStrokeWidth(visualStyle.getOutlineWidth());
+        if (visualStyle.getGlowRadius() > 0f) {
+            mKamelotGlowPaint.setColor(visualStyle.getGlowColor());
+            mKamelotGlowPaint.setStrokeWidth(visualStyle.getOutlineWidth() * 1.8f);
+            mKamelotGlowPaint.setShadowLayer(visualStyle.getGlowRadius(), 0f, 0f, visualStyle.getGlowColor());
+        } else {
+            mKamelotGlowPaint.clearShadowLayer();
+        }
+
+        if (hexPath != null) {
+            if (visualStyle.getGlowRadius() > 0f) {
+                canvas.drawPath(hexPath, mKamelotGlowPaint);
+            }
+            canvas.drawPath(hexPath, mKamelotOverlayPaint);
+            canvas.drawPath(hexPath, mKamelotStrokePaint);
+            return;
+        }
+        if (rect == null) {
+            return;
+        }
+        final float inset = visualStyle.getOutlineWidth() * 0.65f;
+        rect.inset(inset, inset);
+        final float radius = visualStyle.getKeyCornerRadius();
+        if (visualStyle.getGlowRadius() > 0f) {
+            canvas.drawRoundRect(rect, radius, radius, mKamelotGlowPaint);
+        }
+        canvas.drawRoundRect(rect, radius, radius, mKamelotOverlayPaint);
+        canvas.drawRoundRect(rect, radius, radius, mKamelotStrokePaint);
+        rect.inset(-inset, -inset);
     }
 
     // Draw key top visuals.
@@ -422,8 +492,11 @@ public class KeyboardView extends View {
             @NonNull final Paint paint, @NonNull final KeyDrawParams params) {
         final int keyWidth = key.getDrawWidth();
         final int keyHeight = key.getHeight();
-        final float centerX = keyWidth * 0.5f;
-        final float centerY = keyHeight * 0.5f;
+        final HexGridLayout hexGridLayout = mHexGridLayout;
+        final HexKeyGeometry hexGeometry = (mHexLayoutEnabled && hexGridLayout != null)
+                ? hexGridLayout.getGeometry(key) : null;
+        final float centerX = hexGeometry != null ? hexGeometry.getLocalCenterX() : keyWidth * 0.5f;
+        final float centerY = hexGeometry != null ? hexGeometry.getLocalCenterY() : keyHeight * 0.5f;
 
         // Draw key label.
         final Keyboard keyboard = getKeyboard();
